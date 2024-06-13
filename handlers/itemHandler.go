@@ -23,6 +23,10 @@ func CreateItem(db *gorm.DB) gin.HandlerFunc { //gorm.db sử dụng con trỏ �
 		//Check if item title is already exist then return message "item title already exist"
 		var existingItem models.TodoItem
 		result := db.Where("title = ?", newItem.Title).First(&existingItem)
+		if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+			return
+		}
 		if result.RowsAffected > 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Item title already exist"})
 			return
@@ -33,7 +37,7 @@ func CreateItem(db *gorm.DB) gin.HandlerFunc { //gorm.db sử dụng con trỏ �
 			return
 		}
 
-		c.JSON(http.StatusCreated, "Created successfully!!")
+		c.JSON(http.StatusCreated, gin.H{"message": "Item created successfully"})
 	}
 }
 
@@ -69,9 +73,21 @@ func GetItems(db *gorm.DB) gin.HandlerFunc {
 
 func UpdateItem(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		var item models.TodoItem
 		if result := db.First(&item, c.Param("id")); result.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+			return
+		}
+
+		var existingItem models.TodoItem
+		result := db.Where("title = ?", item.Title).First(&existingItem)
+		if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+			return
+		}
+		if result.RowsAffected > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Item title already exist"})
 			return
 		}
 
